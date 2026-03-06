@@ -120,6 +120,10 @@ function App() {
         onEdgesChange={onEdgesChange}
         nodeTypes={nodeTypes}
         fitView
+        fitViewOptions={{
+          padding: 0.3,
+          maxZoom: 0.8,
+        }}
       >
         <Background variant={BackgroundVariant.Dots} />
         <Controls />
