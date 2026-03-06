@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import dagre from 'dagre';
 import {
   ReactFlow,
   type Node,
@@ -17,11 +18,40 @@ const nodeTypes = {
   mikado: MikadoNode,
 };
 
-const initialNodes: Node[] = [
+const getLaidOutElements = (nodes: Node[], edges: Edge[]) => {
+  const dagreGraph = new dagre.graphlib.Graph();
+  dagreGraph.setDefaultEdgeLabel(() => ({}));
+  dagreGraph.setGraph({ rankdir: 'TB', ranksep: 100, nodesep: 100 });
+
+  nodes.forEach((node) => {
+    dagreGraph.setNode(node.id, { width: 280, height: 200 });
+  });
+
+  edges.forEach((edge) => {
+    dagreGraph.setEdge(edge.source, edge.target);
+  });
+
+  dagre.layout(dagreGraph);
+
+  const laidOutNodes = nodes.map((node) => {
+    const nodeWithPosition = dagreGraph.node(node.id);
+    return {
+      ...node,
+      position: {
+        x: nodeWithPosition.x,
+        y: nodeWithPosition.y,
+      },
+    };
+  });
+
+  return { nodes: laidOutNodes, edges };
+};
+
+const initialNodesRaw: Node[] = [
   {
     id: '1',
     type: 'mikado',
-    position: { x: 250, y: 50 },
+    position: { x: 0, y: 0 },
     data: {
       header: 'Main Goal',
       description: 'The ultimate objective of this refactor',
@@ -32,28 +62,18 @@ const initialNodes: Node[] = [
 
 const initialEdges: Edge[] = [];
 
+const { nodes: initialNodes, edges: initialEdgesLaidOut } = getLaidOutElements(initialNodesRaw, initialEdges);
+
 function App() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdgesLaidOut);
   const [nodeIdCounter, setNodeIdCounter] = useState(2);
 
   const addChildNode = useCallback((parentId: string) => {
-    // Find parent node to position child below it
-    const parentNode = nodes.find(n => n.id === parentId);
-    if (!parentNode) return;
-
-    // Count existing children to calculate horizontal offset
-    const existingChildren = edges.filter(e => e.source === parentId).length;
-    const horizontalSpacing = 200; // Spacing between siblings
-    const xOffset = existingChildren * horizontalSpacing;
-
     const newNode: Node = {
       id: `${nodeIdCounter}`,
       type: 'mikado',
-      position: {
-        x: parentNode.position.x + xOffset,
-        y: parentNode.position.y + 150, // Position 150px below parent
-      },
+      position: { x: 0, y: 0 }, // Will be positioned by dagre
       data: {
         header: 'New Task',
         description: '',
@@ -68,8 +88,14 @@ function App() {
       target: `${nodeIdCounter}`,
     };
 
-    setNodes((nds) => [...nds, newNode]);
-    setEdges((eds) => [...eds, newEdge]);
+    const newNodes = [...nodes, newNode];
+    const newEdges = [...edges, newEdge];
+
+    // Apply dagre layout
+    const { nodes: laidOutNodes, edges: laidOutEdges } = getLaidOutElements(newNodes, newEdges);
+
+    setNodes(laidOutNodes);
+    setEdges(laidOutEdges);
     setNodeIdCounter((id) => id + 1);
   }, [nodeIdCounter, nodes, edges, setNodes, setEdges]);
 

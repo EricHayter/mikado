@@ -95,8 +95,7 @@ const MikadoNode = ({ data, id }: MikadoNodeProps) => {
       radius="md"
       style={{
         backgroundColor: getBackgroundColor(),
-        minWidth: '240px',
-        maxWidth: '340px',
+        width: '280px',
         position: 'relative',
         border: '1px solid #e9ecef',
         padding: '16px 16px 12px 16px',
@@ -160,6 +159,8 @@ const MikadoNode = ({ data, id }: MikadoNodeProps) => {
               cursor: 'text',
               minHeight: '24px',
               padding: '4px',
+              wordBreak: 'break-word',
+              overflowWrap: 'break-word',
             }}
           >
             {header}
@@ -193,6 +194,8 @@ const MikadoNode = ({ data, id }: MikadoNodeProps) => {
               minHeight: '20px',
               whiteSpace: 'pre-wrap',
               padding: '4px',
+              wordBreak: 'break-word',
+              overflowWrap: 'break-word',
             }}
           >
             {description}
