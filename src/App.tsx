@@ -59,6 +59,11 @@ function App() {
     setNodeIdCounter((id) => id + 1);
   }, [nodeIdCounter, setNodes]);
 
+  const deleteNode = useCallback((nodeId: string) => {
+    setNodes((nds) => nds.filter(n => n.id !== nodeId));
+    setEdges((eds) => eds.filter(e => e.source !== nodeId && e.target !== nodeId));
+  }, [setNodes, setEdges]);
+
   return (
     <div style={{ width: '100vw', height: '100vh' }}>
       <div style={{ position: 'absolute', top: 10, left: 10, zIndex: 10 }}>
@@ -67,7 +72,10 @@ function App() {
         </button>
       </div>
       <ReactFlow
-        nodes={nodes}
+        nodes={nodes.map(node => ({
+          ...node,
+          data: { ...node.data, onDelete: deleteNode }
+        }))}
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}

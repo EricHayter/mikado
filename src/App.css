@@ -67,6 +67,39 @@ body {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
+.node-delete-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  border: none;
+  background-color: #ef4444;
+  color: white;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s, background-color 0.2s;
+  padding: 0;
+}
+
+.mikado-node:hover .node-delete-btn {
+  opacity: 1;
+}
+
+.node-delete-btn:hover {
+  background-color: #dc2626;
+}
+
+.node-delete-btn:active {
+  background-color: #b91c1c;
+}
+
 /* Custom node selection styling */
 .react-flow__node.selected .mikado-node {
   border-color: #3b82f6;

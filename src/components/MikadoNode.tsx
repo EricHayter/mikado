@@ -5,6 +5,7 @@ export type MikadoNodeData = {
   header: string;
   description: string;
   status: 'todo' | 'in-progress' | 'done';
+  onDelete?: (id: string) => void;
 };
 
 type MikadoNodeProps = {
@@ -76,9 +77,23 @@ const MikadoNode = ({ data, id }: MikadoNodeProps) => {
       className="mikado-node"
       style={{
         backgroundColor: getStatusColor(),
+        position: 'relative',
       }}
     >
       <Handle type="target" position={Position.Top} />
+
+      {data.onDelete && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            data.onDelete?.(id);
+          }}
+          className="node-delete-btn"
+          title="Delete node"
+        >
+          ×
+        </button>
+      )}
 
       <div style={{ marginBottom: '12px' }}>
         {isEditingHeader ? (
