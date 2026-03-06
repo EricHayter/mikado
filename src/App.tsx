@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { Button } from '@mantine/core';
 import {
   ReactFlow,
   type Node,
@@ -66,10 +67,10 @@ function App() {
 
   return (
     <div style={{ width: '100vw', height: '100vh' }}>
-      <div style={{ position: 'absolute', top: 10, left: 10, zIndex: 10 }}>
-        <button onClick={addNode} className="add-node-btn">
-          + Add Node
-        </button>
+      <div style={{ position: 'absolute', top: 12, left: 12, zIndex: 10 }}>
+        <Button onClick={addNode} leftSection="+" size="md">
+          Add Node
+        </Button>
       </div>
       <ReactFlow
         nodes={nodes.map(node => ({

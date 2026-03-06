@@ -1,5 +1,7 @@
 import { memo, useState, useCallback } from 'react';
 import { Handle, Position } from '@xyflow/react';
+import { ActionIcon, TextInput, Textarea, Badge, Paper, Group, useMantineTheme } from '@mantine/core';
+import { IconX } from '@tabler/icons-react';
 
 export type MikadoNodeData = {
   header: string;
@@ -14,6 +16,7 @@ type MikadoNodeProps = {
 };
 
 const MikadoNode = ({ data, id }: MikadoNodeProps) => {
+  const theme = useMantineTheme();
   const [isEditingHeader, setIsEditingHeader] = useState(false);
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [header, setHeader] = useState(data.header);
@@ -49,13 +52,13 @@ const MikadoNode = ({ data, id }: MikadoNodeProps) => {
   const getStatusColor = () => {
     switch (status) {
       case 'todo':
-        return '#ffffff'; // white
+        return 'gray';
       case 'in-progress':
-        return '#fef3c7'; // yellow-100
+        return 'yellow';
       case 'done':
-        return '#d1fae5'; // green-100
+        return 'green';
       default:
-        return '#ffffff';
+        return 'gray';
     }
   };
 
@@ -72,35 +75,65 @@ const MikadoNode = ({ data, id }: MikadoNodeProps) => {
     }
   };
 
+  const getBackgroundColor = () => {
+    switch (status) {
+      case 'todo':
+        return theme.white;
+      case 'in-progress':
+        return theme.colors.yellow[0];
+      case 'done':
+        return theme.colors.green[0];
+      default:
+        return theme.white;
+    }
+  };
+
   return (
-    <div
-      className="mikado-node"
+    <Paper
+      shadow="sm"
+      radius="md"
       style={{
-        backgroundColor: getStatusColor(),
+        backgroundColor: getBackgroundColor(),
+        minWidth: '240px',
+        maxWidth: '340px',
         position: 'relative',
+        border: '1px solid #e9ecef',
+        padding: '16px 16px 12px 16px',
       }}
+      className="mikado-node-paper"
     >
       <Handle type="target" position={Position.Top} />
 
       {data.onDelete && (
-        <button
+        <ActionIcon
+          color="red"
+          variant="filled"
+          size="sm"
+          radius="sm"
+          style={{
+            position: 'absolute',
+            top: 8,
+            right: 8,
+            opacity: 0,
+            transition: 'opacity 0.2s',
+          }}
+          className="node-delete-btn-mantine"
           onClick={(e) => {
             e.stopPropagation();
             data.onDelete?.(id);
           }}
-          className="node-delete-btn"
           title="Delete node"
+          aria-label="Delete node"
         >
-          ×
-        </button>
+          <IconX size={14} stroke={2.5} />
+        </ActionIcon>
       )}
 
-      <div style={{ marginBottom: '12px' }}>
+      <div>
         {isEditingHeader ? (
-          <input
-            type="text"
+          <TextInput
             value={header}
-            onChange={(e) => setHeader(e.target.value)}
+            onChange={(e) => setHeader(e.currentTarget.value)}
             onBlur={handleHeaderBlur}
             autoFocus
             onKeyDown={(e) => {
@@ -108,17 +141,22 @@ const MikadoNode = ({ data, id }: MikadoNodeProps) => {
                 e.currentTarget.blur();
               }
             }}
-            style={{ color: '#111827' }}
+            size="md"
+            styles={{
+              input: {
+                fontWeight: 600,
+              },
+            }}
           />
         ) : (
           <div
             onDoubleClick={handleHeaderDoubleClick}
             style={{
               fontSize: '16px',
-              fontWeight: '600',
+              fontWeight: 600,
               cursor: 'text',
               minHeight: '24px',
-              color: '#111827',
+              padding: '4px',
             }}
           >
             {header}
@@ -126,11 +164,11 @@ const MikadoNode = ({ data, id }: MikadoNodeProps) => {
         )}
       </div>
 
-      <div style={{ marginBottom: '12px' }}>
+      <div style={{ marginBottom: 8 }}>
         {isEditingDescription ? (
-          <textarea
+          <Textarea
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            onChange={(e) => setDescription(e.currentTarget.value)}
             onBlur={handleDescriptionBlur}
             autoFocus
             onKeyDown={(e) => {
@@ -138,18 +176,20 @@ const MikadoNode = ({ data, id }: MikadoNodeProps) => {
                 e.currentTarget.blur();
               }
             }}
-            style={{ color: '#111827' }}
             placeholder="Add description..."
+            minRows={2}
+            autosize
           />
         ) : description ? (
           <div
             onDoubleClick={handleDescriptionDoubleClick}
             style={{
               fontSize: '14px',
-              color: '#4b5563',
+              color: theme.colors.gray[7],
               cursor: 'text',
               minHeight: '20px',
               whiteSpace: 'pre-wrap',
+              padding: '4px',
             }}
           >
             {description}
@@ -159,10 +199,11 @@ const MikadoNode = ({ data, id }: MikadoNodeProps) => {
             onDoubleClick={handleDescriptionDoubleClick}
             style={{
               fontSize: '14px',
-              color: '#9ca3af',
+              color: theme.colors.gray[5],
               cursor: 'text',
               minHeight: '20px',
               fontStyle: 'italic',
+              padding: '4px',
             }}
           >
             Add description...
@@ -170,14 +211,20 @@ const MikadoNode = ({ data, id }: MikadoNodeProps) => {
         )}
       </div>
 
-      <div>
-        <button onClick={cycleStatus} className="status-btn">
+      <Group>
+        <Badge
+          color={getStatusColor()}
+          variant="filled"
+          size="lg"
+          style={{ cursor: 'pointer' }}
+          onClick={cycleStatus}
+        >
           {getStatusLabel()}
-        </button>
-      </div>
+        </Badge>
+      </Group>
 
       <Handle type="source" position={Position.Bottom} />
-    </div>
+    </Paper>
   );
 };
 
