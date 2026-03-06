@@ -1,42 +1,129 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+* {
+  box-sizing: border-box;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+:root {
+  /* ReactFlow CSS Variables */
+  --xy-node-color: #374151;
+  --xy-node-border: #e5e7eb;
+  --xy-node-background-color: #ffffff;
+  --xy-node-boxshadow-hover: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --xy-node-boxshadow-selected: 0 0 0 2px #3b82f6;
+
+  --xy-handle-background-color: #3b82f6;
+  --xy-handle-border-color: #ffffff;
+
+  --xy-controls-button-background-color: #ffffff;
+  --xy-controls-button-background-color-hover: #f9fafb;
+  --xy-controls-button-color: #374151;
+  --xy-controls-button-border-color: #e5e7eb;
+
+  --xy-edge-stroke-default: #94a3b8;
+  --xy-edge-stroke-width-default: 2;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+.add-node-btn {
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 6px;
+  border: none;
+  background-color: #3b82f6;
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.2s;
 }
 
-.card {
-  padding: 2em;
+.add-node-btn:hover {
+  background-color: #2563eb;
 }
 
-.read-the-docs {
-  color: #888;
+.add-node-btn:active {
+  background-color: #1d4ed8;
+}
+
+/* Mikado Node Styling */
+.mikado-node {
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  min-width: 220px;
+  max-width: 320px;
+  font-family: inherit;
+  transition: box-shadow 0.2s;
+}
+
+.mikado-node:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Custom node selection styling */
+.react-flow__node.selected .mikado-node {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+/* Handle sizing */
+.react-flow__handle {
+  width: 10px;
+  height: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* Node Input Styling */
+.mikado-node input,
+.mikado-node textarea {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  padding: 6px 8px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+  color: #111827;
+  background-color: white;
+}
+
+.mikado-node input:focus,
+.mikado-node textarea:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.mikado-node input {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.mikado-node textarea {
+  font-size: 14px;
+  min-height: 60px;
+  resize: vertical;
+}
+
+.mikado-node .status-btn {
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  background-color: white;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mikado-node .status-btn:hover {
+  background-color: #f9fafb;
+  border-color: #9ca3af;
 }
