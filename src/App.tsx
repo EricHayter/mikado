@@ -1,11 +1,8 @@
 import { useCallback, useState } from 'react';
-import { Button } from '@mantine/core';
 import {
   ReactFlow,
   type Node,
   type Edge,
-  addEdge,
-  type Connection,
   useNodesState,
   useEdgesState,
   Controls,
@@ -40,25 +37,41 @@ function App() {
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [nodeIdCounter, setNodeIdCounter] = useState(2);
 
-  const onConnect = useCallback(
-    (params: Connection) => setEdges((eds) => addEdge(params, eds)),
-    [setEdges]
-  );
+  const addChildNode = useCallback((parentId: string) => {
+    // Find parent node to position child below it
+    const parentNode = nodes.find(n => n.id === parentId);
+    if (!parentNode) return;
 
-  const addNode = useCallback(() => {
+    // Count existing children to calculate horizontal offset
+    const existingChildren = edges.filter(e => e.source === parentId).length;
+    const horizontalSpacing = 200; // Spacing between siblings
+    const xOffset = existingChildren * horizontalSpacing;
+
     const newNode: Node = {
       id: `${nodeIdCounter}`,
       type: 'mikado',
-      position: { x: Math.random() * 400 + 100, y: Math.random() * 400 + 100 },
+      position: {
+        x: parentNode.position.x + xOffset,
+        y: parentNode.position.y + 150, // Position 150px below parent
+      },
       data: {
         header: 'New Task',
         description: '',
         status: 'todo',
       },
     };
+
+    // Create edge from parent to child
+    const newEdge: Edge = {
+      id: `e${parentId}-${nodeIdCounter}`,
+      source: parentId,
+      target: `${nodeIdCounter}`,
+    };
+
     setNodes((nds) => [...nds, newNode]);
+    setEdges((eds) => [...eds, newEdge]);
     setNodeIdCounter((id) => id + 1);
-  }, [nodeIdCounter, setNodes]);
+  }, [nodeIdCounter, nodes, edges, setNodes, setEdges]);
 
   const deleteNode = useCallback((nodeId: string) => {
     setNodes((nds) => nds.filter(n => n.id !== nodeId));
@@ -67,20 +80,18 @@ function App() {
 
   return (
     <div style={{ width: '100vw', height: '100vh' }}>
-      <div style={{ position: 'absolute', top: 12, left: 12, zIndex: 10 }}>
-        <Button onClick={addNode} leftSection="+" size="md">
-          Add Node
-        </Button>
-      </div>
       <ReactFlow
         nodes={nodes.map(node => ({
           ...node,
-          data: { ...node.data, onDelete: deleteNode }
+          data: {
+            ...node.data,
+            onDelete: deleteNode,
+            onAddChild: addChildNode
+          }
         }))}
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
         nodeTypes={nodeTypes}
         fitView
       >

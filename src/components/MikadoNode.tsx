@@ -1,13 +1,14 @@
 import { memo, useState, useCallback } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { ActionIcon, TextInput, Textarea, Badge, Paper, Group, useMantineTheme } from '@mantine/core';
-import { IconX } from '@tabler/icons-react';
+import { IconX, IconPlus } from '@tabler/icons-react';
 
 export type MikadoNodeData = {
   header: string;
   description: string;
   status: 'todo' | 'in-progress' | 'done';
   onDelete?: (id: string) => void;
+  onAddChild?: (parentId: string) => void;
 };
 
 type MikadoNodeProps = {
@@ -102,9 +103,11 @@ const MikadoNode = ({ data, id }: MikadoNodeProps) => {
       }}
       className="mikado-node-paper"
     >
+      {/* Hidden handles for edge connections */}
       <Handle type="target" position={Position.Top} />
+      <Handle type="source" position={Position.Bottom} />
 
-      {data.onDelete && (
+      {data.onDelete && id !== '1' && (
         <ActionIcon
           color="red"
           variant="filled"
@@ -223,7 +226,32 @@ const MikadoNode = ({ data, id }: MikadoNodeProps) => {
         </Badge>
       </Group>
 
-      <Handle type="source" position={Position.Bottom} />
+      {data.onAddChild && (
+        <ActionIcon
+          color="blue"
+          variant="filled"
+          size="sm"
+          radius="sm"
+          style={{
+            position: 'absolute',
+            bottom: -12,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            opacity: 0,
+            transition: 'opacity 0.2s',
+            zIndex: 10,
+          }}
+          className="node-add-child-btn"
+          onClick={(e) => {
+            e.stopPropagation();
+            data.onAddChild?.(id);
+          }}
+          title="Add child node"
+          aria-label="Add child node"
+        >
+          <IconPlus size={14} stroke={2.5} />
+        </ActionIcon>
+      )}
     </Paper>
   );
 };

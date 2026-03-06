@@ -38,15 +38,18 @@ body {
   opacity: 1 !important;
 }
 
+/* Mantine node add child button hover effect */
+.mikado-node-paper:hover .node-add-child-btn {
+  opacity: 1 !important;
+}
+
 /* Custom node selection styling */
 .react-flow__node.selected .mikado-node-paper {
   border-color: #228be6 !important;
   box-shadow: 0 0 0 3px rgba(34, 139, 230, 0.2) !important;
 }
 
-/* Handle sizing */
+/* Hide handles completely */
 .react-flow__handle {
-  width: 10px;
-  height: 10px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  visibility: hidden !important;
 }
