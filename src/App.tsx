@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect, useRef } from 'react';
+import { useCallback, useState, useEffect, useRef, useMemo } from 'react';
 import {
   ReactFlow,
   type Node,
@@ -52,11 +52,17 @@ function App() {
   const [activeGraphId, setActiveGraphId] = useState<string | null>(null);
   const [sidebarOpened, setSidebarOpened] = useState<boolean>(true);
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [nodesRaw, setNodesRaw, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdgesLaidOut);
   const [nodeIdCounter, setNodeIdCounter] = useState(2);
 
-  const isAttachingCallbacks = useRef(false);
+  const nodesRef = useRef(nodesRaw);
+  const edgesRef = useRef(edges);
+
+  useEffect(() => {
+    nodesRef.current = nodesRaw;
+    edgesRef.current = edges;
+  }, [nodesRaw, edges]);
 
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [exportFilename, setExportFilename] = useState('');
@@ -124,7 +130,7 @@ function App() {
           const activeGraph = graphsMap.get(activeId);
           if (activeGraph) {
             setActiveGraphId(activeId);
-            setNodes(activeGraph.nodes);
+            setNodesRaw(activeGraph.nodes);
             setEdges(activeGraph.edges);
             setNodeIdCounter(activeGraph.nodeIdCounter);
           }
@@ -157,41 +163,34 @@ function App() {
     setNodeIdCounter((currentCounter) => {
       const newNodeId = `${currentCounter}`;
 
-      setNodes((currentNodes) => {
-        setEdges((currentEdges) => {
-          const newNode: Node = {
-            id: newNodeId,
-            type: 'mikado',
-            position: { x: 0, y: 0 },
-            data: {
-              header: 'New Task',
-              description: '',
-              status: 'todo',
-            },
-          };
+      const newNode: Node = {
+        id: newNodeId,
+        type: 'mikado',
+        position: { x: 0, y: 0 },
+        data: {
+          header: 'New Task',
+          description: '',
+          status: 'todo',
+        },
+      };
 
-          const newEdge: Edge = {
-            id: `e${parentId}-${newNodeId}`,
-            source: parentId,
-            target: newNodeId,
-          };
+      const newEdge: Edge = {
+        id: `e${parentId}-${newNodeId}`,
+        source: parentId,
+        target: newNodeId,
+      };
 
-          const { nodes: laidOutNodes, edges: laidOutEdges } = getLaidOutElements(
-            [...currentNodes, newNode],
-            [...currentEdges, newEdge]
-          );
+      const { nodes: laidOutNodes, edges: laidOutEdges } = getLaidOutElements(
+        [...nodesRef.current, newNode],
+        [...edgesRef.current, newEdge]
+      );
 
-          setNodes(laidOutNodes);
-          setEdges(laidOutEdges);
-
-          return currentEdges;
-        });
-        return currentNodes;
-      });
+      setNodesRaw(laidOutNodes);
+      setEdges(laidOutEdges);
 
       return currentCounter + 1;
     });
-  }, [setNodes, setEdges, setNodeIdCounter]);
+  }, [setNodesRaw, setEdges]);
 
   const deleteNode = useCallback((nodeId: string) => {
     // Find all descendants recursively
@@ -209,21 +208,27 @@ function App() {
     };
 
     const performDelete = () => {
-      setEdges((eds) => {
-        const descendants = findDescendants(nodeId, eds);
-        const allNodesToDelete = new Set([nodeId, ...descendants]);
+      const currentEdges = edgesRef.current;
+      const currentNodes = nodesRef.current;
+      const descendants = findDescendants(nodeId, currentEdges);
+      const allNodesToDelete = new Set([nodeId, ...descendants]);
 
-        // Also update nodes to remove the node and all its descendants
-        setNodes((nds) => nds.filter(n => !allNodesToDelete.has(n.id)));
+      // Update nodes to remove the node and all its descendants
+      const updatedNodes = currentNodes.filter(n => !allNodesToDelete.has(n.id));
 
-        // Delete all edges connected to the node or any of its descendants
-        return eds.filter(e => !allNodesToDelete.has(e.source) && !allNodesToDelete.has(e.target));
-      });
+      // Delete all edges connected to the node or any of its descendants
+      const updatedEdges = currentEdges.filter(
+        e => !allNodesToDelete.has(e.source) && !allNodesToDelete.has(e.target)
+      );
+
+      setNodesRaw(updatedNodes);
+      setEdges(updatedEdges);
     };
 
     // Check if this is a root node (no incoming edges)
-    const isRootNode = !edges.some(e => e.target === nodeId);
-    const descendants = findDescendants(nodeId, edges);
+    const currentEdges = edgesRef.current;
+    const isRootNode = !currentEdges.some(e => e.target === nodeId);
+    const descendants = findDescendants(nodeId, currentEdges);
     const hasDescendants = descendants.size > 0;
 
     if (isRootNode || hasDescendants) {
@@ -237,9 +242,9 @@ function App() {
       // No confirmation needed for leaf nodes
       performDelete();
     }
-  }, [setNodes, setEdges, edges]);
+  }, [setNodesRaw, setEdges]);
 
-  // Helper to attach callbacks to nodes
+  // Helper to attach callbacks to nodes - using useMemo to avoid recreating nodes unnecessarily
   const attachCallbacksToNodes = useCallback((nodesList: Node[]) => {
     return nodesList.map((node) => ({
       ...node,
@@ -251,22 +256,10 @@ function App() {
     }));
   }, [deleteNode, addChildNode]);
 
-  // Attach callbacks to nodes after mount and when callbacks change
-  useEffect(() => {
-    if (nodes.length > 0 && !isAttachingCallbacks.current) {
-      // Check if any node is missing callbacks
-      const needsCallbacks = nodes.some(node => !node.data.onDelete || !node.data.onAddChild);
-      if (needsCallbacks) {
-        isAttachingCallbacks.current = true;
-        const nodesWithCallbacks = attachCallbacksToNodes(nodes);
-        setNodes(nodesWithCallbacks);
-        // Reset the flag after a short delay to allow the update to complete
-        setTimeout(() => {
-          isAttachingCallbacks.current = false;
-        }, 0);
-      }
-    }
-  }, [nodes, attachCallbacksToNodes, setNodes]);
+  // Attach callbacks to nodes - memoized so it only updates when nodesRaw or callbacks change
+  const nodes = useMemo(() => {
+    return attachCallbacksToNodes(nodesRaw);
+  }, [nodesRaw, attachCallbacksToNodes]);
 
   const exportGraph = useCallback(async () => {
     if (!activeGraphId) return;
@@ -334,12 +327,12 @@ function App() {
     newGraphs.set(newGraph.id, newGraph);
     setGraphs(newGraphs);
     setActiveGraphId(newGraph.id);
-    setNodes(attachCallbacksToNodes(newGraph.nodes));
+    setNodesRaw(newGraph.nodes);
     setEdges(newGraph.edges);
     setNodeIdCounter(newGraph.nodeIdCounter);
     saveToStorage(newGraphs);
     localStorage.setItem(STORAGE_KEYS.ACTIVE_GRAPH_ID, newGraph.id);
-  }, [graphs, saveToStorage, attachCallbacksToNodes]);
+  }, [graphs, saveToStorage]);
 
   const switchGraph = useCallback((graphId: string) => {
     // Save current graph state before switching
@@ -360,13 +353,13 @@ function App() {
     // Load new graph
     const newGraph = graphs.get(graphId);
     if (newGraph) {
-      setNodes(attachCallbacksToNodes(newGraph.nodes));
+      setNodesRaw(newGraph.nodes);
       setEdges(newGraph.edges);
       setNodeIdCounter(newGraph.nodeIdCounter);
       setActiveGraphId(graphId);
       localStorage.setItem(STORAGE_KEYS.ACTIVE_GRAPH_ID, graphId);
     }
-  }, [activeGraphId, graphs, nodes, edges, nodeIdCounter, saveToStorage, attachCallbacksToNodes]);
+  }, [activeGraphId, graphs, nodes, edges, nodeIdCounter, saveToStorage]);
 
   const deleteGraph = useCallback((graphId: string) => {
     const performDelete = () => {
@@ -379,7 +372,7 @@ function App() {
         newGraphs.set(defaultGraph.id, defaultGraph);
         setGraphs(newGraphs);
         setActiveGraphId(defaultGraph.id);
-        setNodes(attachCallbacksToNodes(defaultGraph.nodes));
+        setNodesRaw(defaultGraph.nodes);
         setEdges(defaultGraph.edges);
         setNodeIdCounter(defaultGraph.nodeIdCounter);
         localStorage.setItem(STORAGE_KEYS.ACTIVE_GRAPH_ID, defaultGraph.id);
@@ -396,7 +389,7 @@ function App() {
           const firstGraph = newGraphs.get(firstGraphId);
           if (firstGraph) {
             setActiveGraphId(firstGraphId);
-            setNodes(attachCallbacksToNodes(firstGraph.nodes));
+            setNodesRaw(firstGraph.nodes);
             setEdges(firstGraph.edges);
             setNodeIdCounter(firstGraph.nodeIdCounter);
             localStorage.setItem(STORAGE_KEYS.ACTIVE_GRAPH_ID, firstGraphId);
@@ -412,7 +405,7 @@ function App() {
       'Are you sure you want to delete this graph? This action cannot be undone.',
       performDelete
     );
-  }, [graphs, activeGraphId, saveToStorage, showConfirm, attachCallbacksToNodes]);
+  }, [graphs, activeGraphId, saveToStorage, showConfirm]);
 
   const renameGraph = useCallback((graphId: string, newName: string) => {
     const trimmedName = newName.trim();
@@ -486,7 +479,7 @@ function App() {
       newGraphs.set(importedGraph.id, importedGraph);
       setGraphs(newGraphs);
       setActiveGraphId(importedGraph.id);
-      setNodes(attachCallbacksToNodes(importedGraph.nodes));
+      setNodesRaw(importedGraph.nodes);
       setEdges(importedGraph.edges);
       setNodeIdCounter(importedGraph.nodeIdCounter);
       saveToStorage(newGraphs);
@@ -496,7 +489,7 @@ function App() {
       showAlert(`Import failed: ${message}`);
       console.error('Import error:', error);
     }
-  }, [graphs, saveToStorage, showAlert, attachCallbacksToNodes]);
+  }, [graphs, saveToStorage, showAlert]);
 
   // Auto-save current graph
   const debouncedSave = useDebouncedCallback(() => {
