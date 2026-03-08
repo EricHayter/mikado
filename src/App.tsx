@@ -8,6 +8,7 @@ import {
   Controls,
   Background,
   BackgroundVariant,
+  useReactFlow,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import {
@@ -35,7 +36,7 @@ import { ExportModal } from './components/modals/ExportModal';
 import { ConfirmModal } from './components/modals/ConfirmModal';
 import { AlertModal } from './components/modals/AlertModal';
 import { DeleteNodeModal } from './components/modals/DeleteNodeModal';
-import type { GraphData } from './types';
+import type { GraphData, MikadoGraphExport } from './types';
 import { STORAGE_KEYS, initialNodesRaw, initialEdges } from './constants';
 import { getLaidOutElements } from './utils/layout';
 import { validateImportData, createDefaultGraph, generateGraphName, createExportData } from './utils/graph';
@@ -46,6 +47,61 @@ const nodeTypes = {
 };
 
 const { nodes: initialNodes, edges: initialEdgesLaidOut} = getLaidOutElements(initialNodesRaw, initialEdges);
+
+// Component to handle keyboard events with ReactFlow hooks
+function KeyboardHandler({ selectedNodes, deleteNode }: { selectedNodes: string[], deleteNode: (id: string) => void }) {
+  const { setViewport, getViewport } = useReactFlow();
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Ignore if user is typing in an input
+      const target = event.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      // Delete key - delete selected nodes
+      if (event.key === 'Delete' || event.key === 'Backspace') {
+        if (selectedNodes.length > 0) {
+          event.preventDefault();
+          selectedNodes.forEach(nodeId => deleteNode(nodeId));
+        }
+      }
+
+      // Arrow keys - pan the viewport smoothly
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) {
+        event.preventDefault();
+        const panAmount = event.shiftKey ? 100 : 50;
+        const viewport = getViewport();
+
+        let newX = viewport.x;
+        let newY = viewport.y;
+
+        switch (event.key) {
+          case 'ArrowUp':
+            newY += panAmount;
+            break;
+          case 'ArrowDown':
+            newY -= panAmount;
+            break;
+          case 'ArrowLeft':
+            newX += panAmount;
+            break;
+          case 'ArrowRight':
+            newX -= panAmount;
+            break;
+        }
+
+        setViewport({ x: newX, y: newY, zoom: viewport.zoom });
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedNodes, deleteNode, setViewport, getViewport]);
+
+  return null;
+}
 
 function App() {
   const [graphs, setGraphs] = useState<Map<string, GraphData>>(new Map());
@@ -84,6 +140,8 @@ function App() {
     descendantCount: number;
     onConfirm: () => void;
   } | null>(null);
+
+  const [selectedNodes, setSelectedNodes] = useState<string[]>([]);
 
   // Modal helpers
   const showAlert = useCallback((message: string) => {
@@ -440,10 +498,11 @@ function App() {
 
     try {
       const text = await file.text();
-      const data = JSON.parse(text);
-      validateImportData(data);
+      const parsedData = JSON.parse(text);
+      validateImportData(parsedData);
+      const data = parsedData as MikadoGraphExport;
 
-      const importedNodes: Node[] = data.nodes.map(node => ({
+      const importedNodes: Node[] = data.nodes.map((node: any) => ({
         id: node.id,
         type: 'mikado',
         position: node.position,
@@ -454,7 +513,7 @@ function App() {
         }
       }));
 
-      const importedEdges: Edge[] = data.edges.map(edge => ({
+      const importedEdges: Edge[] = data.edges.map((edge: any) => ({
         id: edge.id,
         source: edge.source,
         target: edge.target,
@@ -513,6 +572,11 @@ function App() {
       debouncedSave();
     }
   }, [nodes, edges, nodeIdCounter]);
+
+  // Handle node selection changes
+  const onSelectionChange = useCallback(({ nodes: selectedNodes }: { nodes: Node[] }) => {
+    setSelectedNodes(selectedNodes.map(n => n.id));
+  }, []);
 
   return (
     <>
@@ -650,10 +714,15 @@ function App() {
                 edges={edges}
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
+                onSelectionChange={onSelectionChange}
                 nodeTypes={nodeTypes}
                 fitView
                 fitViewOptions={{ maxZoom: 0.8 }}
+                panOnDrag={true}
+                zoomOnScroll={true}
+                zoomOnPinch={true}
               >
+                <KeyboardHandler selectedNodes={selectedNodes} deleteNode={deleteNode} />
                 <Controls />
                 <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
               </ReactFlow>

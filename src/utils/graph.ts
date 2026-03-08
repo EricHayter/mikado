@@ -3,7 +3,7 @@ import type { GraphData, MikadoGraphExport } from '../types';
 import { initialNodesRaw, initialEdges } from '../constants';
 import { getLaidOutElements } from './layout';
 
-export const validateImportData = (data: any): asserts data is MikadoGraphExport => {
+export function validateImportData(data: any): asserts data is MikadoGraphExport {
   if (!data || typeof data !== 'object') {
     throw new Error('Invalid file format: Expected JSON object');
   }
@@ -82,9 +82,9 @@ export const createExportData = (
       id: node.id,
       position: node.position,
       data: {
-        header: node.data.header,
-        description: node.data.description,
-        status: node.data.status,
+        header: node.data.header as string,
+        description: node.data.description as string,
+        status: node.data.status as 'todo' | 'in-progress' | 'done',
       }
     })),
     edges: edges.map(edge => ({
