@@ -595,6 +595,12 @@ function App() {
                 {sidebarOpened ? <IconLayoutSidebarLeftCollapse size={20} /> : <IconLayoutSidebarLeftExpand size={20} />}
               </ActionIcon>
 
+              {activeGraphId && graphs.get(activeGraphId) && (
+                <Text size="lg" fw={600}>
+                  {graphs.get(activeGraphId)!.name}
+                </Text>
+              )}
+
               <Group justify="flex-end">
                 <Button
                   onClick={exportGraph}
