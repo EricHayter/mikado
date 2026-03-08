@@ -29,6 +29,7 @@ import {
   IconPlus,
   IconLayoutSidebarLeftCollapse,
   IconLayoutSidebarLeftExpand,
+  IconHelp,
 } from '@tabler/icons-react';
 import MikadoNode from './components/MikadoNode';
 import GraphListItem from './components/GraphListItem';
@@ -36,6 +37,7 @@ import { ExportModal } from './components/modals/ExportModal';
 import { ConfirmModal } from './components/modals/ConfirmModal';
 import { AlertModal } from './components/modals/AlertModal';
 import { DeleteNodeModal } from './components/modals/DeleteNodeModal';
+import { HelpModal } from './components/modals/HelpModal';
 import type { GraphData, MikadoGraphExport } from './types';
 import { STORAGE_KEYS, initialNodesRaw, initialEdges } from './constants';
 import { getLaidOutElements } from './utils/layout';
@@ -140,6 +142,8 @@ function App() {
     descendantCount: number;
     onConfirm: () => void;
   } | null>(null);
+
+  const [helpModalOpen, setHelpModalOpen] = useState(false);
 
   const [selectedNodes, setSelectedNodes] = useState<string[]>([]);
 
@@ -610,6 +614,11 @@ function App() {
         onConfirm={deleteNodeConfig?.onConfirm || (() => {})}
       />
 
+      <HelpModal
+        opened={helpModalOpen}
+        onClose={() => setHelpModalOpen(false)}
+      />
+
       <AppShell
         navbar={{
           width: 280,
@@ -726,6 +735,25 @@ function App() {
                 <Controls />
                 <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
               </ReactFlow>
+
+              {/* Floating Help Button */}
+              <ActionIcon
+                onClick={() => setHelpModalOpen(true)}
+                size="xl"
+                radius="xl"
+                variant="filled"
+                color="blue"
+                style={{
+                  position: 'absolute',
+                  bottom: '20px',
+                  right: '20px',
+                  zIndex: 10,
+                  boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
+                }}
+                aria-label="Help"
+              >
+                <IconHelp size={24} />
+              </ActionIcon>
             </div>
           </div>
         </AppShell.Main>
