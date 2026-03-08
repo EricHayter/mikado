@@ -1,5 +1,4 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
-import dagre from 'dagre';
 import {
   ReactFlow,
   type Node,
@@ -15,11 +14,8 @@ import {
   Group,
   Button,
   FileButton,
-  Modal,
-  TextInput,
   Stack,
   AppShell,
-  NavLink,
   ScrollArea,
   ActionIcon,
   Divider,
@@ -32,163 +28,23 @@ import {
   IconPlus,
   IconLayoutSidebarLeftCollapse,
   IconLayoutSidebarLeftExpand,
-  IconTrash,
 } from '@tabler/icons-react';
 import MikadoNode from './components/MikadoNode';
 import GraphListItem from './components/GraphListItem';
+import { ExportModal } from './components/modals/ExportModal';
+import { ConfirmModal } from './components/modals/ConfirmModal';
+import { AlertModal } from './components/modals/AlertModal';
+import type { GraphData } from './types';
+import { STORAGE_KEYS, initialNodesRaw, initialEdges } from './constants';
+import { getLaidOutElements } from './utils/layout';
+import { validateImportData, createDefaultGraph, generateGraphName, createExportData } from './utils/graph';
 import './App.css';
 
 const nodeTypes = {
   mikado: MikadoNode,
 };
 
-interface GraphData {
-  id: string;
-  name: string;
-  createdAt: string;
-  lastModified: string;
-  nodeIdCounter: number;
-  nodes: Node[];
-  edges: Edge[];
-}
-
-interface MikadoGraphExport {
-  version: string;
-  exportedAt: string;
-  nodeIdCounter: number;
-  nodes: {
-    id: string;
-    position: { x: number; y: number };
-    data: {
-      header: string;
-      description: string;
-      status: 'todo' | 'in-progress' | 'done';
-    };
-  }[];
-  edges: {
-    id: string;
-    source: string;
-    target: string;
-  }[];
-}
-
-const validateImportData = (data: any): asserts data is MikadoGraphExport => {
-  if (!data || typeof data !== 'object') {
-    throw new Error('Invalid file format: Expected JSON object');
-  }
-  if (!data.version || typeof data.version !== 'string') {
-    throw new Error('Invalid file format: Missing version field');
-  }
-  if (!Array.isArray(data.nodes)) {
-    throw new Error('Invalid file format: Missing or invalid nodes array');
-  }
-  if (!Array.isArray(data.edges)) {
-    throw new Error('Invalid file format: Missing or invalid edges array');
-  }
-  if (typeof data.nodeIdCounter !== 'number') {
-    throw new Error('Invalid file format: Missing or invalid nodeIdCounter');
-  }
-
-  // Validate each node
-  data.nodes.forEach((node: any, index: number) => {
-    if (!node.id || typeof node.id !== 'string') {
-      throw new Error(`Invalid node at index ${index}: Missing id`);
-    }
-    if (!node.position || typeof node.position.x !== 'number' || typeof node.position.y !== 'number') {
-      throw new Error(`Invalid node at index ${index}: Invalid position`);
-    }
-    if (!node.data || typeof node.data.header !== 'string') {
-      throw new Error(`Invalid node at index ${index}: Invalid data.header`);
-    }
-    if (!['todo', 'in-progress', 'done'].includes(node.data.status)) {
-      throw new Error(`Invalid node at index ${index}: Invalid status`);
-    }
-  });
-
-  // Validate each edge
-  data.edges.forEach((edge: any, index: number) => {
-    if (!edge.id || !edge.source || !edge.target) {
-      throw new Error(`Invalid edge at index ${index}: Missing required fields`);
-    }
-  });
-};
-
-const STORAGE_KEYS = {
-  GRAPHS: 'mikado-graphs',
-  ACTIVE_GRAPH_ID: 'mikado-active-graph-id',
-  SIDEBAR_STATE: 'mikado-sidebar-opened',
-};
-
-const getLaidOutElements = (nodes: Node[], edges: Edge[]) => {
-  const dagreGraph = new dagre.graphlib.Graph();
-  dagreGraph.setDefaultEdgeLabel(() => ({}));
-  dagreGraph.setGraph({ rankdir: 'TB', ranksep: 100, nodesep: 100 });
-
-  nodes.forEach((node) => {
-    dagreGraph.setNode(node.id, { width: 280, height: 200 });
-  });
-
-  edges.forEach((edge) => {
-    dagreGraph.setEdge(edge.source, edge.target);
-  });
-
-  dagre.layout(dagreGraph);
-
-  const laidOutNodes = nodes.map((node) => {
-    const nodeWithPosition = dagreGraph.node(node.id);
-    return {
-      ...node,
-      position: {
-        x: nodeWithPosition.x,
-        y: nodeWithPosition.y,
-      },
-    };
-  });
-
-  return { nodes: laidOutNodes, edges };
-};
-
-const initialNodesRaw: Node[] = [
-  {
-    id: '1',
-    type: 'mikado',
-    position: { x: 0, y: 0 },
-    data: {
-      header: 'Main Goal',
-      description: 'The ultimate objective of this refactor',
-      status: 'todo',
-    },
-  },
-];
-
-const initialEdges: Edge[] = [];
-
 const { nodes: initialNodes, edges: initialEdgesLaidOut} = getLaidOutElements(initialNodesRaw, initialEdges);
-
-const createDefaultGraph = (name: string = 'Graph 1'): GraphData => {
-  const { nodes: laidOutNodes, edges: laidOutEdges } = getLaidOutElements(initialNodesRaw, initialEdges);
-  return {
-    id: crypto.randomUUID(),
-    name,
-    createdAt: new Date().toISOString(),
-    lastModified: new Date().toISOString(),
-    nodeIdCounter: 2,
-    nodes: laidOutNodes,
-    edges: laidOutEdges,
-  };
-};
-
-const generateGraphName = (existingGraphs: Map<string, GraphData>): string => {
-  let counter = 1;
-  let name = `Graph ${counter}`;
-
-  while (Array.from(existingGraphs.values()).some(g => g.name === name)) {
-    counter++;
-    name = `Graph ${counter}`;
-  }
-
-  return name;
-};
 
 function App() {
   const [graphs, setGraphs] = useState<Map<string, GraphData>>(new Map());
@@ -290,13 +146,15 @@ function App() {
   }, [sidebarOpened]);
 
   const addChildNode = useCallback((parentId: string) => {
-    setNodes((currentNodes) => {
-      setEdges((currentEdges) => {
-        setNodeIdCounter((currentCounter) => {
+    setNodeIdCounter((currentCounter) => {
+      const newNodeId = `${currentCounter}`;
+
+      setNodes((currentNodes) => {
+        setEdges((currentEdges) => {
           const newNode: Node = {
-            id: `${currentCounter}`,
+            id: newNodeId,
             type: 'mikado',
-            position: { x: 0, y: 0 }, // Will be positioned by dagre
+            position: { x: 0, y: 0 },
             data: {
               header: 'New Task',
               description: '',
@@ -304,32 +162,26 @@ function App() {
             },
           };
 
-          // Create edge from parent to child
           const newEdge: Edge = {
-            id: `e${parentId}-${currentCounter}`,
+            id: `e${parentId}-${newNodeId}`,
             source: parentId,
-            target: `${currentCounter}`,
+            target: newNodeId,
           };
 
-          const newNodes = [...currentNodes, newNode];
-          const newEdges = [...currentEdges, newEdge];
+          const { nodes: laidOutNodes, edges: laidOutEdges } = getLaidOutElements(
+            [...currentNodes, newNode],
+            [...currentEdges, newEdge]
+          );
 
-          // Apply dagre layout
-          const { nodes: laidOutNodes, edges: laidOutEdges } = getLaidOutElements(newNodes, newEdges);
-
-          console.log('New nodes after add:', laidOutNodes);
-          console.log('New edges after add:', laidOutEdges);
-
-          // Set the laid out nodes and edges (this will replace the outer setNodes/setEdges)
           setNodes(laidOutNodes);
           setEdges(laidOutEdges);
-          setNodeIdCounter(currentCounter + 1);
 
-          return currentCounter; // Return value doesn't matter
+          return currentEdges;
         });
-        return currentEdges; // Return value doesn't matter
+        return currentNodes;
       });
-      return currentNodes; // Return value doesn't matter
+
+      return currentCounter + 1;
     });
   }, [setNodes, setEdges, setNodeIdCounter]);
 
@@ -395,27 +247,7 @@ function App() {
     const graph = graphs.get(activeGraphId);
     if (!graph) return;
 
-    console.log('Export button clicked');
-    const exportData: MikadoGraphExport = {
-      version: "1.0",
-      exportedAt: new Date().toISOString(),
-      nodeIdCounter,
-      nodes: nodes.map(node => ({
-        id: node.id,
-        position: node.position,
-        data: {
-          header: node.data.header,
-          description: node.data.description,
-          status: node.data.status,
-        }
-      })),
-      edges: edges.map(edge => ({
-        id: edge.id,
-        source: edge.source,
-        target: edge.target,
-      }))
-    };
-
+    const exportData = createExportData(nodes, edges, nodeIdCounter);
     const jsonString = JSON.stringify(exportData, null, 2);
     const sanitizedName = graph.name.replace(/[^a-z0-9]/gi, '-').toLowerCase();
     const suggestedName = `${sanitizedName}-${new Date().toISOString().split('T')[0]}.json`;
@@ -423,7 +255,6 @@ function App() {
     try {
       // Use File System Access API if available (Chrome, Edge)
       if (typeof (window as any).showSaveFilePicker === 'function') {
-        console.log('Using showSaveFilePicker');
         const handle = await (window as any).showSaveFilePicker({
           suggestedName,
           types: [{
@@ -436,8 +267,6 @@ function App() {
         await writable.close();
       } else {
         // Fallback: Show modal for filename input
-        console.log('Using modal fallback');
-        console.log('Setting modal open to true');
         setPendingExportData(jsonString);
         setExportFilename(suggestedName);
         setExportModalOpen(true);
@@ -635,8 +464,6 @@ function App() {
       setNodeIdCounter(importedGraph.nodeIdCounter);
       saveToStorage(newGraphs);
       localStorage.setItem(STORAGE_KEYS.ACTIVE_GRAPH_ID, importedGraph.id);
-
-      console.log('Graph imported successfully');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       showAlert(`Import failed: ${message}`);
@@ -669,87 +496,27 @@ function App() {
 
   return (
     <>
-      <Modal
+      <ExportModal
         opened={exportModalOpen}
         onClose={() => setExportModalOpen(false)}
-        title="Export Graph"
-        centered
-        zIndex={1000}
-      >
-        <Stack gap="md">
-          <TextInput
-            label="Filename"
-            placeholder="Enter filename"
-            value={exportFilename}
-            onChange={(e) => setExportFilename(e.currentTarget.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                handleDownloadFromModal();
-              }
-            }}
-          />
-          <Group justify="flex-end" gap="sm">
-            <Button
-              variant="default"
-              onClick={() => setExportModalOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              leftSection={<IconDownload size={16} />}
-              onClick={handleDownloadFromModal}
-            >
-              Download
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
+        filename={exportFilename}
+        onFilenameChange={setExportFilename}
+        onDownload={handleDownloadFromModal}
+      />
 
-      <Modal
+      <ConfirmModal
         opened={confirmModalOpen}
         onClose={() => setConfirmModalOpen(false)}
         title={confirmModalConfig?.title || 'Confirm'}
-        centered
-        zIndex={1000}
-      >
-        <Stack gap="md">
-          <Text>{confirmModalConfig?.message}</Text>
-          <Group justify="flex-end" gap="sm">
-            <Button
-              variant="default"
-              onClick={() => setConfirmModalOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              color="red"
-              onClick={() => {
-                confirmModalConfig?.onConfirm();
-                setConfirmModalOpen(false);
-              }}
-            >
-              Confirm
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
+        message={confirmModalConfig?.message || ''}
+        onConfirm={confirmModalConfig?.onConfirm || (() => {})}
+      />
 
-      <Modal
+      <AlertModal
         opened={alertModalOpen}
         onClose={() => setAlertModalOpen(false)}
-        title="Notice"
-        centered
-        zIndex={1000}
-      >
-        <Stack gap="md">
-          <Text>{alertModalMessage}</Text>
-          <Group justify="flex-end">
-            <Button onClick={() => setAlertModalOpen(false)}>
-              OK
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
+        message={alertModalMessage}
+      />
 
       <AppShell
         navbar={{
