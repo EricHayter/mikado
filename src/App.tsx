@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import dagre from 'dagre';
 import {
   ReactFlow,
@@ -199,6 +199,8 @@ function App() {
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdgesLaidOut);
   const [nodeIdCounter, setNodeIdCounter] = useState(2);
 
+  const isAttachingCallbacks = useRef(false);
+
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [exportFilename, setExportFilename] = useState('');
   const [pendingExportData, setPendingExportData] = useState<string | null>(null);
@@ -212,8 +214,6 @@ function App() {
 
   const [alertModalOpen, setAlertModalOpen] = useState(false);
   const [alertModalMessage, setAlertModalMessage] = useState('');
-
-  console.log('Modal open state:', exportModalOpen);
 
   // Modal helpers
   const showAlert = useCallback((message: string) => {
@@ -290,36 +290,48 @@ function App() {
   }, [sidebarOpened]);
 
   const addChildNode = useCallback((parentId: string) => {
-    const newNode: Node = {
-      id: `${nodeIdCounter}`,
-      type: 'mikado',
-      position: { x: 0, y: 0 }, // Will be positioned by dagre
-      data: {
-        header: 'New Task',
-        description: '',
-        status: 'todo',
-        onDelete: deleteNode,
-        onAddChild: addChildNode,
-      },
-    };
+    setNodes((currentNodes) => {
+      setEdges((currentEdges) => {
+        setNodeIdCounter((currentCounter) => {
+          const newNode: Node = {
+            id: `${currentCounter}`,
+            type: 'mikado',
+            position: { x: 0, y: 0 }, // Will be positioned by dagre
+            data: {
+              header: 'New Task',
+              description: '',
+              status: 'todo',
+            },
+          };
 
-    // Create edge from parent to child
-    const newEdge: Edge = {
-      id: `e${parentId}-${nodeIdCounter}`,
-      source: parentId,
-      target: `${nodeIdCounter}`,
-    };
+          // Create edge from parent to child
+          const newEdge: Edge = {
+            id: `e${parentId}-${currentCounter}`,
+            source: parentId,
+            target: `${currentCounter}`,
+          };
 
-    const newNodes = [...nodes, newNode];
-    const newEdges = [...edges, newEdge];
+          const newNodes = [...currentNodes, newNode];
+          const newEdges = [...currentEdges, newEdge];
 
-    // Apply dagre layout
-    const { nodes: laidOutNodes, edges: laidOutEdges } = getLaidOutElements(newNodes, newEdges);
+          // Apply dagre layout
+          const { nodes: laidOutNodes, edges: laidOutEdges } = getLaidOutElements(newNodes, newEdges);
 
-    setNodes(laidOutNodes);
-    setEdges(laidOutEdges);
-    setNodeIdCounter((id) => id + 1);
-  }, [nodeIdCounter, nodes, edges, setNodes, setEdges]);
+          console.log('New nodes after add:', laidOutNodes);
+          console.log('New edges after add:', laidOutEdges);
+
+          // Set the laid out nodes and edges (this will replace the outer setNodes/setEdges)
+          setNodes(laidOutNodes);
+          setEdges(laidOutEdges);
+          setNodeIdCounter(currentCounter + 1);
+
+          return currentCounter; // Return value doesn't matter
+        });
+        return currentEdges; // Return value doesn't matter
+      });
+      return currentNodes; // Return value doesn't matter
+    });
+  }, [setNodes, setEdges, setNodeIdCounter]);
 
   const deleteNode = useCallback((nodeId: string) => {
     // Find all descendants recursively
@@ -362,14 +374,20 @@ function App() {
 
   // Attach callbacks to nodes after mount and when callbacks change
   useEffect(() => {
-    if (nodes.length > 0) {
-      const nodesWithCallbacks = attachCallbacksToNodes(nodes);
-      // Only update if callbacks are not already attached
-      if (!nodes[0].data.onDelete || !nodes[0].data.onAddChild) {
+    if (nodes.length > 0 && !isAttachingCallbacks.current) {
+      // Check if any node is missing callbacks
+      const needsCallbacks = nodes.some(node => !node.data.onDelete || !node.data.onAddChild);
+      if (needsCallbacks) {
+        isAttachingCallbacks.current = true;
+        const nodesWithCallbacks = attachCallbacksToNodes(nodes);
         setNodes(nodesWithCallbacks);
+        // Reset the flag after a short delay to allow the update to complete
+        setTimeout(() => {
+          isAttachingCallbacks.current = false;
+        }, 0);
       }
     }
-  }, [attachCallbacksToNodes]);
+  }, [nodes, attachCallbacksToNodes, setNodes]);
 
   const exportGraph = useCallback(async () => {
     if (!activeGraphId) return;
