@@ -34,6 +34,7 @@ import GraphListItem from './components/GraphListItem';
 import { ExportModal } from './components/modals/ExportModal';
 import { ConfirmModal } from './components/modals/ConfirmModal';
 import { AlertModal } from './components/modals/AlertModal';
+import { DeleteNodeModal } from './components/modals/DeleteNodeModal';
 import type { GraphData } from './types';
 import { STORAGE_KEYS, initialNodesRaw, initialEdges } from './constants';
 import { getLaidOutElements } from './utils/layout';
@@ -70,6 +71,13 @@ function App() {
 
   const [alertModalOpen, setAlertModalOpen] = useState(false);
   const [alertModalMessage, setAlertModalMessage] = useState('');
+
+  const [deleteNodeModalOpen, setDeleteNodeModalOpen] = useState(false);
+  const [deleteNodeConfig, setDeleteNodeConfig] = useState<{
+    isRootNode: boolean;
+    descendantCount: number;
+    onConfirm: () => void;
+  } | null>(null);
 
   // Modal helpers
   const showAlert = useCallback((message: string) => {
@@ -200,17 +208,36 @@ function App() {
       return descendants;
     };
 
-    setEdges((eds) => {
-      const descendants = findDescendants(nodeId, eds);
-      const allNodesToDelete = new Set([nodeId, ...descendants]);
+    const performDelete = () => {
+      setEdges((eds) => {
+        const descendants = findDescendants(nodeId, eds);
+        const allNodesToDelete = new Set([nodeId, ...descendants]);
 
-      // Also update nodes to remove the node and all its descendants
-      setNodes((nds) => nds.filter(n => !allNodesToDelete.has(n.id)));
+        // Also update nodes to remove the node and all its descendants
+        setNodes((nds) => nds.filter(n => !allNodesToDelete.has(n.id)));
 
-      // Delete all edges connected to the node or any of its descendants
-      return eds.filter(e => !allNodesToDelete.has(e.source) && !allNodesToDelete.has(e.target));
-    });
-  }, [setNodes, setEdges]);
+        // Delete all edges connected to the node or any of its descendants
+        return eds.filter(e => !allNodesToDelete.has(e.source) && !allNodesToDelete.has(e.target));
+      });
+    };
+
+    // Check if this is a root node (no incoming edges)
+    const isRootNode = !edges.some(e => e.target === nodeId);
+    const descendants = findDescendants(nodeId, edges);
+    const hasDescendants = descendants.size > 0;
+
+    if (isRootNode || hasDescendants) {
+      setDeleteNodeConfig({
+        isRootNode,
+        descendantCount: descendants.size,
+        onConfirm: performDelete,
+      });
+      setDeleteNodeModalOpen(true);
+    } else {
+      // No confirmation needed for leaf nodes
+      performDelete();
+    }
+  }, [setNodes, setEdges, edges]);
 
   // Helper to attach callbacks to nodes
   const attachCallbacksToNodes = useCallback((nodesList: Node[]) => {
@@ -516,6 +543,14 @@ function App() {
         opened={alertModalOpen}
         onClose={() => setAlertModalOpen(false)}
         message={alertModalMessage}
+      />
+
+      <DeleteNodeModal
+        opened={deleteNodeModalOpen}
+        onClose={() => setDeleteNodeModalOpen(false)}
+        isRootNode={deleteNodeConfig?.isRootNode || false}
+        descendantCount={deleteNodeConfig?.descendantCount || 0}
+        onConfirm={deleteNodeConfig?.onConfirm || (() => {})}
       />
 
       <AppShell

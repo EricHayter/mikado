@@ -106,7 +106,7 @@ const MikadoNode = ({ data, id }: MikadoNodeProps) => {
       <Handle type="target" position={Position.Top} />
       <Handle type="source" position={Position.Bottom} />
 
-      {data.onDelete && id !== '1' && (
+      {data.onDelete && (
         <ActionIcon
           color="red"
           variant="filled"
