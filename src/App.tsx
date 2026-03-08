@@ -287,6 +287,36 @@ function App() {
       setEdges(updatedEdges);
     };
 
+    const performProjectDelete = () => {
+      if (activeGraphId) {
+        const newGraphs = new Map(graphs);
+        newGraphs.delete(activeGraphId);
+        setGraphs(newGraphs);
+
+        // Switch to first available project (or set to null if none)
+        const firstGraphId = newGraphs.keys().next().value;
+        if (firstGraphId) {
+          const firstGraph = newGraphs.get(firstGraphId);
+          if (firstGraph) {
+            setActiveGraphId(firstGraphId);
+            setNodesRaw(firstGraph.nodes);
+            setEdges(firstGraph.edges);
+            setNodeIdCounter(firstGraph.nodeIdCounter);
+            localStorage.setItem(STORAGE_KEYS.ACTIVE_GRAPH_ID, firstGraphId);
+          }
+        } else {
+          // No projects left
+          setActiveGraphId(null);
+          setNodesRaw([]);
+          setEdges([]);
+          setNodeIdCounter(2);
+          localStorage.removeItem(STORAGE_KEYS.ACTIVE_GRAPH_ID);
+        }
+
+        saveToStorage(newGraphs);
+      }
+    };
+
     // Check if this is a root node (no incoming edges)
     const currentEdges = edgesRef.current;
     const isRootNode = !currentEdges.some(e => e.target === nodeId);
@@ -297,14 +327,14 @@ function App() {
       setDeleteNodeConfig({
         isRootNode,
         descendantCount: descendants.size,
-        onConfirm: performDelete,
+        onConfirm: isRootNode ? performProjectDelete : performDelete,
       });
       setDeleteNodeModalOpen(true);
     } else {
       // No confirmation needed for leaf nodes
       performDelete();
     }
-  }, [setNodesRaw, setEdges]);
+  }, [setNodesRaw, setEdges, activeGraphId, graphs, saveToStorage]);
 
   // Helper to attach callbacks to nodes - using useMemo to avoid recreating nodes unnecessarily
   const attachCallbacksToNodes = useCallback((nodesList: Node[]) => {
@@ -428,23 +458,9 @@ function App() {
       const newGraphs = new Map(graphs);
       newGraphs.delete(graphId);
 
-      // If this was the last graph, create a new default one
-      if (newGraphs.size === 0) {
-        const defaultGraph = createDefaultGraph();
-        newGraphs.set(defaultGraph.id, defaultGraph);
-        setGraphs(newGraphs);
-        setActiveGraphId(defaultGraph.id);
-        setNodesRaw(defaultGraph.nodes);
-        setEdges(defaultGraph.edges);
-        setNodeIdCounter(defaultGraph.nodeIdCounter);
-        localStorage.setItem(STORAGE_KEYS.ACTIVE_GRAPH_ID, defaultGraph.id);
-        saveToStorage(newGraphs);
-        return;
-      }
-
       setGraphs(newGraphs);
 
-      // If deleting active graph, switch to first available
+      // If deleting active graph, switch to first available (or set to null if none)
       if (graphId === activeGraphId) {
         const firstGraphId = newGraphs.keys().next().value;
         if (firstGraphId) {
@@ -456,6 +472,13 @@ function App() {
             setNodeIdCounter(firstGraph.nodeIdCounter);
             localStorage.setItem(STORAGE_KEYS.ACTIVE_GRAPH_ID, firstGraphId);
           }
+        } else {
+          // No projects left
+          setActiveGraphId(null);
+          setNodesRaw([]);
+          setEdges([]);
+          setNodeIdCounter(2);
+          localStorage.removeItem(STORAGE_KEYS.ACTIVE_GRAPH_ID);
         }
       }
 
@@ -659,7 +682,7 @@ function App() {
               {graphs.size === 0 ? (
                 <Stack align="center" gap="md" py="xl">
                   <Text c="dimmed" size="sm">No projects yet</Text>
-                  <Button onClick={createNewGraph}>Create your first project</Button>
+                  <Button onClick={createNewGraph}>Create Project</Button>
                 </Stack>
               ) : (
                 <Stack gap="xs">
