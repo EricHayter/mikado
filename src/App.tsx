@@ -322,8 +322,30 @@ function App() {
   }, [nodeIdCounter, nodes, edges, setNodes, setEdges]);
 
   const deleteNode = useCallback((nodeId: string) => {
-    setNodes((nds) => nds.filter(n => n.id !== nodeId));
-    setEdges((eds) => eds.filter(e => e.source !== nodeId && e.target !== nodeId));
+    // Find all descendants recursively
+    const findDescendants = (id: string, edgesList: Edge[]): Set<string> => {
+      const descendants = new Set<string>();
+      const children = edgesList.filter(e => e.source === id).map(e => e.target);
+
+      children.forEach(childId => {
+        descendants.add(childId);
+        const childDescendants = findDescendants(childId, edgesList);
+        childDescendants.forEach(descId => descendants.add(descId));
+      });
+
+      return descendants;
+    };
+
+    setEdges((eds) => {
+      const descendants = findDescendants(nodeId, eds);
+      const allNodesToDelete = new Set([nodeId, ...descendants]);
+
+      // Also update nodes to remove the node and all its descendants
+      setNodes((nds) => nds.filter(n => !allNodesToDelete.has(n.id)));
+
+      // Delete all edges connected to the node or any of its descendants
+      return eds.filter(e => !allNodesToDelete.has(e.source) && !allNodesToDelete.has(e.target));
+    });
   }, [setNodes, setEdges]);
 
   // Helper to attach callbacks to nodes
