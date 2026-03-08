@@ -17,16 +17,16 @@ export const DeleteNodeModal = ({
 }: DeleteNodeModalProps) => {
   const getTitle = () => {
     if (isRootNode) {
-      return 'Delete Root Node';
+      return 'Delete Root Task';
     }
-    return 'Delete Node with Descendants';
+    return 'Delete Task with Subtasks';
   };
 
   const getMessage = () => {
     if (isRootNode) {
-      return 'This is a root node. Deleting it will remove the entire graph branch. Are you sure?';
+      return 'This is a root task. Deleting it will remove the entire task branch. Are you sure?';
     }
-    return `This node has ${descendantCount} descendant(s). Deleting it will also remove all its descendants. Are you sure?`;
+    return `This task has ${descendantCount} subtask(s). Deleting it will also remove all its subtasks. Are you sure?`;
   };
 
   return (

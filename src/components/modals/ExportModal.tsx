@@ -20,7 +20,7 @@ export const ExportModal = ({
     <Modal
       opened={opened}
       onClose={onClose}
-      title="Export Graph"
+      title="Export Project"
       centered
       zIndex={1000}
     >

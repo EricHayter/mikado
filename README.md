@@ -4,11 +4,11 @@ A visual graph-based tool for applying the Mikado Method to software refactoring
 
 ## Features
 
-- **Visual Graph Editor**: Create and manage hierarchical task graphs
-- **Multiple Graphs**: Organize different refactoring projects
-- **Node Management**: Add, edit, and delete nodes with status tracking
+- **Visual Task Editor**: Create and manage hierarchical task projects
+- **Multiple Projects**: Organize different refactoring initiatives
+- **Task Management**: Add, edit, and delete tasks with status tracking
 - **Keyboard Shortcuts**: Fast navigation and editing with keyboard controls
-- **Import/Export**: Save and share graphs as JSON files
+- **Import/Export**: Save and share projects as JSON files
 - **Local Storage**: Automatic persistence of your work
 
 ## Controls
@@ -16,16 +16,16 @@ A visual graph-based tool for applying the Mikado Method to software refactoring
 ### Mouse
 - **Scroll Wheel**: Zoom in/out
 - **Left-click + Drag**: Pan the canvas
-- **Click Node**: Select node
-- **Double-click Text**: Edit node title/description
+- **Click Task**: Select task
+- **Double-click Text**: Edit task title/description
 
 ### Keyboard
 - **Arrow Keys**: Pan the canvas (Shift for faster)
-- **Delete/Backspace**: Delete selected node
+- **Delete/Backspace**: Delete selected task
 - **Safe Mode**: Keyboard shortcuts disabled when typing
 
-### Node Actions
-- **Hover**: Show add child (+) and delete (×) buttons
+### Task Actions
+- **Hover**: Show add subtask (+) and delete (×) buttons
 - **Click Badge**: Cycle through TODO → In Progress → Done
 
 ## Getting Started

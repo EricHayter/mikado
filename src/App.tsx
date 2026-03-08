@@ -463,8 +463,8 @@ function App() {
     };
 
     showConfirm(
-      'Delete Graph',
-      'Are you sure you want to delete this graph? This action cannot be undone.',
+      'Delete Project',
+      'Are you sure you want to delete this project? This action cannot be undone.',
       performDelete
     );
   }, [graphs, activeGraphId, saveToStorage, showConfirm]);
@@ -472,7 +472,7 @@ function App() {
   const renameGraph = useCallback((graphId: string, newName: string) => {
     const trimmedName = newName.trim();
     if (!trimmedName) {
-      showAlert("Graph name cannot be empty");
+      showAlert("Project name cannot be empty");
       return false;
     }
 
@@ -480,7 +480,7 @@ function App() {
       .some(g => g.id !== graphId && g.name === trimmedName);
 
     if (isDuplicate) {
-      showAlert("A graph with this name already exists");
+      showAlert("A project with this name already exists");
       return false;
     }
 
@@ -629,7 +629,7 @@ function App() {
       >
         <AppShell.Navbar p="md">
           <Stack gap="md">
-            <Text size="xl" fw={700}>Graphs</Text>
+            <Text size="xl" fw={700}>Projects</Text>
 
             <Button
               leftSection={<IconPlus size={16} />}
@@ -637,7 +637,7 @@ function App() {
               variant="light"
               onClick={createNewGraph}
             >
-              New Graph
+              New Project
             </Button>
 
             <FileButton onChange={importGraphFromFile} accept=".json,application/json">
@@ -648,7 +648,7 @@ function App() {
                   fullWidth
                   variant="light"
                 >
-                  Import Graph
+                  Import Project
                 </Button>
               )}
             </FileButton>
@@ -658,8 +658,8 @@ function App() {
             <ScrollArea.Autosize mah="calc(100vh - 250px)">
               {graphs.size === 0 ? (
                 <Stack align="center" gap="md" py="xl">
-                  <Text c="dimmed" size="sm">No graphs yet</Text>
-                  <Button onClick={createNewGraph}>Create your first graph</Button>
+                  <Text c="dimmed" size="sm">No projects yet</Text>
+                  <Button onClick={createNewGraph}>Create your first project</Button>
                 </Stack>
               ) : (
                 <Stack gap="xs">

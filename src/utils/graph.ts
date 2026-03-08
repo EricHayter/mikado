@@ -44,7 +44,7 @@ export function validateImportData(data: any): asserts data is MikadoGraphExport
   });
 };
 
-export const createDefaultGraph = (name: string = 'Graph 1'): GraphData => {
+export const createDefaultGraph = (name: string = 'Project 1'): GraphData => {
   const { nodes: laidOutNodes, edges: laidOutEdges } = getLaidOutElements(initialNodesRaw, initialEdges);
   return {
     id: crypto.randomUUID(),
@@ -59,11 +59,11 @@ export const createDefaultGraph = (name: string = 'Graph 1'): GraphData => {
 
 export const generateGraphName = (existingGraphs: Map<string, GraphData>): string => {
   let counter = 1;
-  let name = `Graph ${counter}`;
+  let name = `Project ${counter}`;
 
   while (Array.from(existingGraphs.values()).some(g => g.name === name)) {
     counter++;
-    name = `Graph ${counter}`;
+    name = `Project ${counter}`;
   }
 
   return name;

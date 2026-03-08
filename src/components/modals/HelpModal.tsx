@@ -24,19 +24,19 @@ export function HelpModal({ opened, onClose }: HelpModalProps) {
             planning major features, or any project where you're not quite sure of the full scope yet!
           </Text>
           <Stack gap="xs" mt="md">
-            <Text size="sm" c="dimmed">
+            <Text size="sm">
               <strong>1.</strong> Start with your main goal as the root task (e.g., "Migrate to new API")
             </Text>
-            <Text size="sm" c="dimmed">
+            <Text size="sm">
               <strong>2.</strong> Set a short timer (15-30 minutes) and try to complete the task
             </Text>
-            <Text size="sm" c="dimmed">
+            <Text size="sm">
               <strong>3.</strong> Did you finish? Great! Mark it done and move to the next task. Hit a blocker? Continue to step 4
             </Text>
-            <Text size="sm" c="dimmed">
+            <Text size="sm">
               <strong>4.</strong> Revert your changes, then add subtasks for what you'd need to complete first
             </Text>
-            <Text size="sm" c="dimmed">
+            <Text size="sm">
               <strong>5.</strong> Pick a subtask and return to step 2, working from the smallest tasks back to your goal!
             </Text>
           </Stack>

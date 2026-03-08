@@ -124,8 +124,8 @@ const MikadoNode = ({ data, id }: MikadoNodeProps) => {
             e.stopPropagation();
             data.onDelete?.(id);
           }}
-          title="Delete node"
-          aria-label="Delete node"
+          title="Delete task"
+          aria-label="Delete task"
         >
           <IconX size={14} stroke={2.5} />
         </ActionIcon>
@@ -249,8 +249,8 @@ const MikadoNode = ({ data, id }: MikadoNodeProps) => {
             e.stopPropagation();
             data.onAddChild?.(id);
           }}
-          title="Add child node"
-          aria-label="Add child node"
+          title="Add subtask"
+          aria-label="Add subtask"
         >
           <IconPlus size={14} stroke={2.5} />
         </ActionIcon>
