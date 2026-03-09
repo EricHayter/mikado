@@ -4,6 +4,8 @@ A visual tool for planning and tracking code refactoring using the Mikado Method
 
 **[Try it now →](https://erichayter.github.io/mikado/)**
 
+![Mikado Method Tool Demo](docs/images/demo.png)
+
 ## What is this?
 
 This app helps you break down complex refactoring tasks into manageable steps using the [Mikado Method](https://understandlegacycode.com/blog/the-mikado-method/). It provides a simple, visual interface for mapping out dependencies between refactoring tasks and tracking their progress.
