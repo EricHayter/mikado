@@ -8,7 +8,6 @@ import {
   Controls,
   Background,
   BackgroundVariant,
-  useReactFlow,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import {
@@ -37,11 +36,13 @@ import {
 } from '@tabler/icons-react';
 import MikadoNode from './components/MikadoNode';
 import GraphListItem from './components/GraphListItem';
+import { KeyboardHandler } from './components/KeyboardHandler';
 import { ExportModal } from './components/modals/ExportModal';
 import { ConfirmModal } from './components/modals/ConfirmModal';
 import { AlertModal } from './components/modals/AlertModal';
 import { DeleteNodeModal } from './components/modals/DeleteNodeModal';
 import { HelpModal } from './components/modals/HelpModal';
+import { useModals } from './hooks/useModals';
 import type { GraphData, MikadoGraphExport } from './types';
 import { STORAGE_KEYS, initialNodesRaw, initialEdges } from './constants';
 import { getLaidOutElements } from './utils/layout';
@@ -53,61 +54,6 @@ const nodeTypes = {
 };
 
 const { nodes: initialNodes, edges: initialEdgesLaidOut} = getLaidOutElements(initialNodesRaw, initialEdges);
-
-// Component to handle keyboard events with ReactFlow hooks
-function KeyboardHandler({ selectedNodes, deleteNode }: { selectedNodes: string[], deleteNode: (id: string) => void }) {
-  const { setViewport, getViewport } = useReactFlow();
-
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      // Ignore if user is typing in an input
-      const target = event.target as HTMLElement;
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
-        return;
-      }
-
-      // Delete key - delete selected nodes
-      if (event.key === 'Delete' || event.key === 'Backspace') {
-        if (selectedNodes.length > 0) {
-          event.preventDefault();
-          selectedNodes.forEach(nodeId => deleteNode(nodeId));
-        }
-      }
-
-      // Arrow keys - pan the viewport smoothly
-      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) {
-        event.preventDefault();
-        const panAmount = event.shiftKey ? 100 : 50;
-        const viewport = getViewport();
-
-        let newX = viewport.x;
-        let newY = viewport.y;
-
-        switch (event.key) {
-          case 'ArrowUp':
-            newY += panAmount;
-            break;
-          case 'ArrowDown':
-            newY -= panAmount;
-            break;
-          case 'ArrowLeft':
-            newX += panAmount;
-            break;
-          case 'ArrowRight':
-            newX -= panAmount;
-            break;
-        }
-
-        setViewport({ x: newX, y: newY, zoom: viewport.zoom });
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedNodes, deleteNode, setViewport, getViewport]);
-
-  return null;
-}
 
 function App() {
   const theme = useMantineTheme();
@@ -135,41 +81,31 @@ function App() {
     edgesRef.current = edges;
   }, [nodesRaw, edges]);
 
-  const [exportModalOpen, setExportModalOpen] = useState(false);
-  const [exportFilename, setExportFilename] = useState('');
-  const [pendingExportData, setPendingExportData] = useState<string | null>(null);
-
-  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
-  const [confirmModalConfig, setConfirmModalConfig] = useState<{
-    title: string;
-    message: string;
-    onConfirm: () => void;
-  } | null>(null);
-
-  const [alertModalOpen, setAlertModalOpen] = useState(false);
-  const [alertModalMessage, setAlertModalMessage] = useState('');
-
-  const [deleteNodeModalOpen, setDeleteNodeModalOpen] = useState(false);
-  const [deleteNodeConfig, setDeleteNodeConfig] = useState<{
-    isRootNode: boolean;
-    descendantCount: number;
-    onConfirm: () => void;
-  } | null>(null);
-
-  const [helpModalOpen, setHelpModalOpen] = useState(false);
-
   const [selectedNodes, setSelectedNodes] = useState<string[]>([]);
 
-  // Modal helpers
-  const showAlert = useCallback((message: string) => {
-    setAlertModalMessage(message);
-    setAlertModalOpen(true);
-  }, []);
-
-  const showConfirm = useCallback((title: string, message: string, onConfirm: () => void) => {
-    setConfirmModalConfig({ title, message, onConfirm });
-    setConfirmModalOpen(true);
-  }, []);
+  // Modal management
+  const {
+    exportModalOpen,
+    setExportModalOpen,
+    exportFilename,
+    setExportFilename,
+    pendingExportData,
+    setPendingExportData,
+    confirmModalOpen,
+    setConfirmModalOpen,
+    confirmModalConfig,
+    showConfirm,
+    alertModalOpen,
+    setAlertModalOpen,
+    alertModalMessage,
+    showAlert,
+    deleteNodeModalOpen,
+    setDeleteNodeModalOpen,
+    deleteNodeConfig,
+    showDeleteNodeModal,
+    helpModalOpen,
+    setHelpModalOpen,
+  } = useModals();
 
   // LocalStorage persistence
   const saveToStorage = useCallback((graphsMap: Map<string, GraphData>) => {
@@ -177,10 +113,9 @@ function App() {
       localStorage.setItem(STORAGE_KEYS.GRAPHS, JSON.stringify(Array.from(graphsMap.entries())));
     } catch (error) {
       console.error('Failed to save to localStorage:', error);
-      setAlertModalMessage('Failed to save graphs. You may be running out of storage space.');
-      setAlertModalOpen(true);
+      showAlert('Failed to save graphs. You may be running out of storage space.');
     }
-  }, []);
+  }, [showAlert]);
 
   // Initialize graphs from localStorage
   useEffect(() => {
@@ -337,17 +272,16 @@ function App() {
     const hasDescendants = descendants.size > 0;
 
     if (isRootNode || hasDescendants) {
-      setDeleteNodeConfig({
+      showDeleteNodeModal({
         isRootNode,
         descendantCount: descendants.size,
         onConfirm: isRootNode ? performProjectDelete : performDelete,
       });
-      setDeleteNodeModalOpen(true);
     } else {
       // No confirmation needed for leaf nodes
       performDelete();
     }
-  }, [setNodesRaw, setEdges, activeGraphId, graphs, saveToStorage]);
+  }, [setNodesRaw, setEdges, activeGraphId, graphs, saveToStorage, showDeleteNodeModal]);
 
   // Helper to attach callbacks to nodes - using useMemo to avoid recreating nodes unnecessarily
   const updateNodeData = useCallback((nodeId: string, updates: Partial<{ header: string; description: string; status: string }>) => {
@@ -788,7 +722,7 @@ function App() {
                 onEdgesChange={onEdgesChange}
                 onSelectionChange={onSelectionChange}
                 nodeTypes={nodeTypes}
-                colorMode={colorScheme}
+                colorMode={colorScheme === 'auto' ? undefined : colorScheme}
                 fitView
                 fitViewOptions={{ maxZoom: 0.8 }}
                 panOnDrag={true}
