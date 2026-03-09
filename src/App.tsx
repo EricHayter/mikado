@@ -337,6 +337,23 @@ function App() {
   }, [setNodesRaw, setEdges, activeGraphId, graphs, saveToStorage]);
 
   // Helper to attach callbacks to nodes - using useMemo to avoid recreating nodes unnecessarily
+  const updateNodeData = useCallback((nodeId: string, updates: Partial<{ header: string; description: string; status: string }>) => {
+    setNodesRaw((nodes) =>
+      nodes.map((node) => {
+        if (node.id === nodeId) {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              ...updates,
+            },
+          };
+        }
+        return node;
+      })
+    );
+  }, [setNodesRaw]);
+
   const attachCallbacksToNodes = useCallback((nodesList: Node[]) => {
     return nodesList.map((node) => ({
       ...node,
@@ -344,9 +361,10 @@ function App() {
         ...node.data,
         onDelete: deleteNode,
         onAddChild: addChildNode,
+        onUpdateData: updateNodeData,
       },
     }));
-  }, [deleteNode, addChildNode]);
+  }, [deleteNode, addChildNode, updateNodeData]);
 
   // Attach callbacks to nodes - memoized so it only updates when nodesRaw or callbacks change
   const nodes = useMemo(() => {

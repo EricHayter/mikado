@@ -9,6 +9,7 @@ export type MikadoNodeData = {
   status: 'todo' | 'in-progress' | 'done';
   onDelete?: (id: string) => void;
   onAddChild?: (parentId: string) => void;
+  onUpdateData?: (nodeId: string, updates: Partial<{ header: string; description: string; status: string }>) => void;
 };
 
 type MikadoNodeProps = {
@@ -20,38 +21,44 @@ const MikadoNode = ({ data, id }: MikadoNodeProps) => {
   const theme = useMantineTheme();
   const [isEditingHeader, setIsEditingHeader] = useState(false);
   const [isEditingDescription, setIsEditingDescription] = useState(false);
-  const [header, setHeader] = useState(data.header);
-  const [description, setDescription] = useState(data.description);
-  const [status, setStatus] = useState(data.status);
+  const [editingHeader, setEditingHeader] = useState('');
+  const [editingDescription, setEditingDescription] = useState('');
 
   const handleHeaderDoubleClick = useCallback(() => {
+    setEditingHeader(data.header);
     setIsEditingHeader(true);
-  }, []);
+  }, [data.header]);
 
   const handleDescriptionDoubleClick = useCallback(() => {
+    setEditingDescription(data.description);
     setIsEditingDescription(true);
-  }, []);
+  }, [data.description]);
 
   const handleHeaderBlur = useCallback(() => {
+    if (data.onUpdateData && editingHeader !== data.header) {
+      data.onUpdateData(id, { header: editingHeader });
+    }
     setIsEditingHeader(false);
-    data.header = header;
-  }, [header, data]);
+  }, [editingHeader, data, id]);
 
   const handleDescriptionBlur = useCallback(() => {
+    if (data.onUpdateData && editingDescription !== data.description) {
+      data.onUpdateData(id, { description: editingDescription });
+    }
     setIsEditingDescription(false);
-    data.description = description;
-  }, [description, data]);
+  }, [editingDescription, data, id]);
 
   const cycleStatus = useCallback(() => {
     const statusCycle: MikadoNodeData['status'][] = ['todo', 'in-progress', 'done'];
-    const currentIndex = statusCycle.indexOf(status);
+    const currentIndex = statusCycle.indexOf(data.status);
     const nextStatus = statusCycle[(currentIndex + 1) % statusCycle.length];
-    setStatus(nextStatus);
-    data.status = nextStatus;
-  }, [status, data]);
+    if (data.onUpdateData) {
+      data.onUpdateData(id, { status: nextStatus });
+    }
+  }, [data, id]);
 
   const getStatusColor = () => {
-    switch (status) {
+    switch (data.status) {
       case 'todo':
         return 'gray';
       case 'in-progress':
@@ -64,7 +71,7 @@ const MikadoNode = ({ data, id }: MikadoNodeProps) => {
   };
 
   const getStatusLabel = () => {
-    switch (status) {
+    switch (data.status) {
       case 'todo':
         return 'To Do';
       case 'in-progress':
@@ -77,7 +84,7 @@ const MikadoNode = ({ data, id }: MikadoNodeProps) => {
   };
 
   const getBackgroundColor = () => {
-    switch (status) {
+    switch (data.status) {
       case 'todo':
         return theme.white;
       case 'in-progress':
@@ -134,8 +141,8 @@ const MikadoNode = ({ data, id }: MikadoNodeProps) => {
       <div>
         {isEditingHeader ? (
           <TextInput
-            value={header}
-            onChange={(e) => setHeader(e.currentTarget.value)}
+            value={editingHeader}
+            onChange={(e) => setEditingHeader(e.currentTarget.value)}
             onBlur={handleHeaderBlur}
             autoFocus
             onKeyDown={(e) => {
@@ -163,7 +170,7 @@ const MikadoNode = ({ data, id }: MikadoNodeProps) => {
               overflowWrap: 'break-word',
             }}
           >
-            {header}
+            {data.header}
           </div>
         )}
       </div>
@@ -171,8 +178,8 @@ const MikadoNode = ({ data, id }: MikadoNodeProps) => {
       <div style={{ marginBottom: 8 }}>
         {isEditingDescription ? (
           <Textarea
-            value={description}
-            onChange={(e) => setDescription(e.currentTarget.value)}
+            value={editingDescription}
+            onChange={(e) => setEditingDescription(e.currentTarget.value)}
             onBlur={handleDescriptionBlur}
             autoFocus
             onKeyDown={(e) => {
@@ -184,7 +191,7 @@ const MikadoNode = ({ data, id }: MikadoNodeProps) => {
             minRows={2}
             autosize
           />
-        ) : description ? (
+        ) : data.description ? (
           <div
             onDoubleClick={handleDescriptionDoubleClick}
             style={{
@@ -198,7 +205,7 @@ const MikadoNode = ({ data, id }: MikadoNodeProps) => {
               overflowWrap: 'break-word',
             }}
           >
-            {description}
+            {data.description}
           </div>
         ) : (
           <div
