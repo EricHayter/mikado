@@ -88,13 +88,13 @@ const MikadoNode = ({ data, id }: MikadoNodeProps) => {
     const isDark = colorScheme === 'dark';
     switch (data.status) {
       case 'todo':
-        return isDark ? theme.colors.dark[6] : theme.white;
+        return isDark ? theme.colors.dark[5] : theme.white;
       case 'in-progress':
-        return isDark ? theme.colors.yellow[9] : theme.colors.yellow[0];
+        return isDark ? theme.colors.yellow[7] : theme.colors.yellow[0];
       case 'done':
-        return isDark ? theme.colors.green[9] : theme.colors.green[0];
+        return isDark ? theme.colors.green[7] : theme.colors.green[0];
       default:
-        return isDark ? theme.colors.dark[6] : theme.white;
+        return isDark ? theme.colors.dark[5] : theme.white;
     }
   };
 
@@ -170,6 +170,7 @@ const MikadoNode = ({ data, id }: MikadoNodeProps) => {
               padding: '4px',
               wordBreak: 'break-word',
               overflowWrap: 'break-word',
+              color: colorScheme === 'dark' ? theme.white : theme.black,
             }}
           >
             {data.header}
@@ -198,13 +199,16 @@ const MikadoNode = ({ data, id }: MikadoNodeProps) => {
             onDoubleClick={handleDescriptionDoubleClick}
             style={{
               fontSize: '14px',
-              color: theme.colors.gray[7],
+              color: colorScheme === 'dark'
+                ? (data.status === 'in-progress' || data.status === 'done' ? theme.white : theme.colors.gray[2])
+                : theme.colors.gray[7],
               cursor: 'text',
               minHeight: '20px',
               whiteSpace: 'pre-wrap',
               padding: '4px',
               wordBreak: 'break-word',
               overflowWrap: 'break-word',
+              opacity: colorScheme === 'dark' && (data.status === 'in-progress' || data.status === 'done') ? 0.95 : 1,
             }}
           >
             {data.description}
@@ -214,7 +218,9 @@ const MikadoNode = ({ data, id }: MikadoNodeProps) => {
             onDoubleClick={handleDescriptionDoubleClick}
             style={{
               fontSize: '14px',
-              color: theme.colors.gray[5],
+              color: colorScheme === 'dark'
+                ? (data.status === 'in-progress' || data.status === 'done' ? theme.colors.gray[2] : theme.colors.gray[5])
+                : theme.colors.gray[5],
               cursor: 'text',
               minHeight: '20px',
               fontStyle: 'italic',
