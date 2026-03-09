@@ -4,6 +4,7 @@ export const STORAGE_KEYS = {
   GRAPHS: 'mikado-graphs',
   ACTIVE_GRAPH_ID: 'mikado-active-graph-id',
   SIDEBAR_STATE: 'mikado-sidebar-opened',
+  COLOR_SCHEME: 'mikado-color-scheme',
 };
 
 export const initialNodesRaw: Node[] = [

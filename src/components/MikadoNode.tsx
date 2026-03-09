@@ -1,6 +1,6 @@
 import { memo, useState, useCallback } from 'react';
 import { Handle, Position } from '@xyflow/react';
-import { ActionIcon, TextInput, Textarea, Badge, Paper, Group, useMantineTheme } from '@mantine/core';
+import { ActionIcon, TextInput, Textarea, Badge, Paper, Group, useMantineTheme, useMantineColorScheme } from '@mantine/core';
 import { IconX, IconPlus } from '@tabler/icons-react';
 
 export type MikadoNodeData = {
@@ -19,6 +19,7 @@ type MikadoNodeProps = {
 
 const MikadoNode = ({ data, id }: MikadoNodeProps) => {
   const theme = useMantineTheme();
+  const { colorScheme } = useMantineColorScheme();
   const [isEditingHeader, setIsEditingHeader] = useState(false);
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [editingHeader, setEditingHeader] = useState('');
@@ -84,15 +85,16 @@ const MikadoNode = ({ data, id }: MikadoNodeProps) => {
   };
 
   const getBackgroundColor = () => {
+    const isDark = colorScheme === 'dark';
     switch (data.status) {
       case 'todo':
-        return theme.white;
+        return isDark ? theme.colors.dark[6] : theme.white;
       case 'in-progress':
-        return theme.colors.yellow[0];
+        return isDark ? theme.colors.yellow[9] : theme.colors.yellow[0];
       case 'done':
-        return theme.colors.green[0];
+        return isDark ? theme.colors.green[9] : theme.colors.green[0];
       default:
-        return theme.white;
+        return isDark ? theme.colors.dark[6] : theme.white;
     }
   };
 
@@ -104,7 +106,7 @@ const MikadoNode = ({ data, id }: MikadoNodeProps) => {
         backgroundColor: getBackgroundColor(),
         width: '280px',
         position: 'relative',
-        border: '1px solid #e9ecef',
+        border: `1px solid ${colorScheme === 'dark' ? theme.colors.dark[4] : theme.colors.gray[3]}`,
         padding: '16px 16px 12px 16px',
       }}
       className="mikado-node-paper"

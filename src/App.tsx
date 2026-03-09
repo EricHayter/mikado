@@ -21,6 +21,8 @@ import {
   ActionIcon,
   Divider,
   Text,
+  useMantineColorScheme,
+  useMantineTheme,
 } from '@mantine/core';
 import { useDebouncedCallback } from '@mantine/hooks';
 import {
@@ -30,6 +32,8 @@ import {
   IconLayoutSidebarLeftCollapse,
   IconLayoutSidebarLeftExpand,
   IconHelp,
+  IconMoon,
+  IconSun,
 } from '@tabler/icons-react';
 import MikadoNode from './components/MikadoNode';
 import GraphListItem from './components/GraphListItem';
@@ -106,9 +110,18 @@ function KeyboardHandler({ selectedNodes, deleteNode }: { selectedNodes: string[
 }
 
 function App() {
+  const theme = useMantineTheme();
   const [graphs, setGraphs] = useState<Map<string, GraphData>>(new Map());
   const [activeGraphId, setActiveGraphId] = useState<string | null>(null);
   const [sidebarOpened, setSidebarOpened] = useState<boolean>(true);
+
+  // Dark mode
+  const { colorScheme, setColorScheme } = useMantineColorScheme();
+  const toggleColorScheme = useCallback(() => {
+    const newScheme = colorScheme === 'dark' ? 'light' : 'dark';
+    setColorScheme(newScheme);
+    localStorage.setItem(STORAGE_KEYS.COLOR_SCHEME, newScheme);
+  }, [colorScheme, setColorScheme]);
 
   const [nodesRaw, setNodesRaw, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdgesLaidOut);
@@ -723,8 +736,8 @@ function App() {
         <AppShell.Main>
           <div style={{ width: '100%', height: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
             <Group justify="space-between" p="md" style={{
-              borderBottom: '1px solid #e9ecef',
-              backgroundColor: '#fff',
+              borderBottom: `1px solid ${colorScheme === 'dark' ? theme.colors.dark[4] : theme.colors.gray[3]}`,
+              backgroundColor: colorScheme === 'dark' ? theme.colors.dark[7] : theme.white,
               boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
               flexShrink: 0
             }}>
@@ -744,6 +757,15 @@ function App() {
               )}
 
               <Group justify="flex-end">
+                <ActionIcon
+                  onClick={toggleColorScheme}
+                  variant="default"
+                  size="lg"
+                  aria-label="Toggle color scheme"
+                  title={colorScheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                >
+                  {colorScheme === 'dark' ? <IconSun size={18} /> : <IconMoon size={18} />}
+                </ActionIcon>
                 <Button
                   onClick={exportGraph}
                   leftSection={<IconDownload size={14} />}
@@ -766,6 +788,7 @@ function App() {
                 onEdgesChange={onEdgesChange}
                 onSelectionChange={onSelectionChange}
                 nodeTypes={nodeTypes}
+                colorMode={colorScheme}
                 fitView
                 fitViewOptions={{ maxZoom: 0.8 }}
                 panOnDrag={true}
